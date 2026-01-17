@@ -1,4 +1,6 @@
+# Debezium CDC Connector from RDS Postgresql Database
 
+This terraform is based on the transaction [end-to-end demonstration]()
 
 ```mermaid
 flowchart LR
@@ -12,9 +14,6 @@ flowchart LR
         subgraph Topics [Kafka Topics]
             T1[card-tx.public.customers]
             T2[card-tx.public.transactions]
-            T3[card-tx-enriched-transactions]
-            T4[card-tx-tx-aggregations]
-            T5[card-tx-ml-results]
         end
         
         Flink[Flink Compute Pool]
@@ -23,11 +22,6 @@ flowchart LR
     RDS --> CDC
     CDC --> T1
     CDC --> T2
-    T1 --> Flink
-    T2 --> Flink
-    Flink --> T3
-    Flink --> T4
-    Flink --> T5
 ```
 
 

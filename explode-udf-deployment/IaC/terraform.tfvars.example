@@ -1,0 +1,46 @@
+# -----------------------------------------------------------------------------
+# Confluent Cloud API Credentials
+# -----------------------------------------------------------------------------
+# Get these from: https://confluent.cloud/settings/api-keys
+confluent_cloud_api_key    = "YOUR_API_KEY"
+confluent_cloud_api_secret = "YOUR_API_SECRET"
+
+# -----------------------------------------------------------------------------
+# General Settings
+# -----------------------------------------------------------------------------
+organization_id = "org-xxxxx"  # Your Confluent Cloud organization ID
+environment_id  = "env-xxxxx"   # Your Confluent Cloud environment ID
+
+# -----------------------------------------------------------------------------
+# Artifact Configuration
+# -----------------------------------------------------------------------------
+# Path to the JAR file (relative to this directory or absolute path)
+artifact_file      = "../../../flink-udfs-catalog/explode/target/explode-1.0-0.jar"
+display_name       = "explode-udf"
+content_format     = "JAR"  # Options: JAR, ZIP
+documentation_link = "https://github.com/jbcodeforce/flink-udfs-catalog/tree/main/explode"
+
+# -----------------------------------------------------------------------------
+# Cloud Provider and Region
+# -----------------------------------------------------------------------------
+cloud_provider = "AWS"  # Options: AWS, GCP, AZURE
+cloud_region   = "us-west-2"
+
+# -----------------------------------------------------------------------------
+# Flink Catalog and Database
+# -----------------------------------------------------------------------------
+# In Confluent Cloud, an environment is mapped to a Flink catalog.
+# A Kafka cluster is mapped to a Flink database.
+# See: https://docs.confluent.io/cloud/current/flink/index.html#metadata-mapping-between-ak-cluster-topics-schemas-and-af
+current_catalog  = "your-env-name"      # Display name of your environment
+current_database = "your-cluster-name"  # Display name of your Kafka cluster
+
+# -----------------------------------------------------------------------------
+# Flink Configuration
+# -----------------------------------------------------------------------------
+# These are required for executing Flink statements via Terraform
+flink_compute_pool_id = "lfcp-xxxxx"  # Your Flink compute pool ID
+flink_rest_endpoint   = "https://flink.us-west-2.aws.confluent.cloud"  # Flink REST endpoint
+flink_api_key         = "YOUR_FLINK_API_KEY"
+flink_api_secret      = "YOUR_FLINK_API_SECRET"
+flink_principal_id    = "sa-xxxxx"  # Service account ID with FlinkAdmin role

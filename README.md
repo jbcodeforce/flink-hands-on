@@ -1,13 +1,13 @@
-# Confluent Cloud Flink Hands-on
+# Confluent Flink Offering Hands-on
 
-This repository includes a set of simple demo / hands-on labs with Confluent Cloud Flink.
+This repository includes a set of simple demo / hands-on labs with Confluent Flink: Cloud or Platform.
 
 ## Hands-on
 
-* [ ] Validate CDC source connectors for Aurora Postgres. See [cdc-postgres-to-cc-flink/readme](./cdc-postgres-to-cc-flink/README.md)
+* [ ] Validate CDC source connectors for RDS Postgres. See [cdc-postgres-to-cc-flink/readme](./cdc-postgres-to-cc-flink/README.md)
 * [ ] UDF deployed and executing in CC Flink. See [Explode UDF deployment readme](./explode-udf-deployment/)
 * [ ] Iceberg Integration with Tableflow
-* [ ] CEP features with relevant use cases (pattern detection, event sequences
+* [ ] CEP features with relevant use cases: pattern detection, event sequences
 * [ ] Stateful Processing: aggregation with windowing for Fraud detection
 * [ ] Exactly-Once Semantics and Reconciliation
 * [ ] Validate CDC source connectors for Cassandra
