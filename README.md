@@ -4,9 +4,9 @@ This repository includes a set of simple demo / hands-on labs with Confluent Fli
 
 ## Hands-on
 
-* [ ] Validate CDC source connectors for RDS Postgres. See [cdc-postgres-to-cc-flink/readme](./cdc-postgres-to-cc-flink/README.md)
-* [ ] UDF deployed and executing in CC Flink. See [Explode UDF deployment readme](./explode-udf-deployment/)
-* [ ] Iceberg Integration with Tableflow
+* [x] Validate CDC source connectors for RDS Postgres. See [cdc-postgres-to-cc-flink/readme](./cdc-postgres-to-cc-flink/README.md)
+* [x] UDF deployed and executing in CC Flink. See [Explode UDF deployment readme](./explode-udf-deployment/)
+* [x] Iceberg Integration with Tableflow
 * [ ] CEP features with relevant use cases: pattern detection, event sequences
 * [ ] Stateful Processing: aggregation with windowing for Fraud detection
 * [ ] Exactly-Once Semantics and Reconciliation
