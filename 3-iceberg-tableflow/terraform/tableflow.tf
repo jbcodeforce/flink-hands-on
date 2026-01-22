@@ -47,7 +47,7 @@ resource "confluent_catalog_integration" "tx_tf_catalog" {
   }
 
   lifecycle {
-    prevent_destroy = true
+    prevent_destroy = false
   }
 }
 
