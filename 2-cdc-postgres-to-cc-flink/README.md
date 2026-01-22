@@ -2,7 +2,7 @@
 
 This Terraform configuration creates an RDS PostgreSQL instance with `customers` and `transactions` tables, and a Confluent Cloud Debezium v2 connector to capture change data from PostgreSQL to Kafka topics.
 
-This terraform is based on the transaction/customer [end-to-end demonstration](https://github.com/jbcodeforce/flink-studies/blob/master/e2e-demos/cc-cdc-tx-demo/README.md).
+This terraform is based on the transaction/customer [end-to-end demonstration from flink-studies repository](https://github.com/jbcodeforce/flink-studies/blob/master/e2e-demos/cc-cdc-tx-demo/README.md).
 
 ## Architecture
 
@@ -49,10 +49,12 @@ flowchart LR
    - Existing VPC with subnets
    - AWS CLI configured with appropriate credentials
    - IAM permissions to create RDS instances, security groups, and subnet groups
+   - Existing IAM Role and Policy to access resources
 
 2. **Confluent Cloud Account** with:
-   - API Key and Secret for service account with FlinkAdmin and EnvironmentAdmin role
-   - Access to create environments, clusters, and connectors
+   - Confluent Cloud API Key and Secret
+   - Service account with FlinkAdmin and EnvironmentAdmin role
+   - Access to existing environments, clusters, and schema registry
 
 3. **Local Tools**:
    - Terraform >= 1.3.0
@@ -126,9 +128,7 @@ This will create:
 1. RDS PostgreSQL instance with logical replication enabled
 2. Security group allowing access from Confluent Cloud IPs
 3. Database tables (`customers` and `transactions`)
-4. Confluent Cloud environment and Kafka cluster
-5. Schema Registry (auto-provisioned)
-6. Service accounts and API keys (or reuse existing if `app_manager_sa_id`/`connectors_sa_id` are provided)
+6. Service accounts and API keys (or reuse existing if `connectors_sa_id` is provided)
 7. Debezium v2 CDC connector
 
 ### Add records to Postgres tables
@@ -158,13 +158,8 @@ After deployment, verify:
    - `{prefix}.public.customers`
    - `{prefix}.public.transactions`
 
-3. **Schema Registry Subjects** (created automatically):
-   - `{prefix}.public.customers-key`
-   - `{prefix}.public.customers-value`
-   - `{prefix}.public.transactions-key`
-   - `{prefix}.public.transactions-value`
 
-4. **Connector Status**:
+3. **Connector Status**:
    - Check in Confluent Cloud UI → Connectors
    - Verify connector is running and capturing changes
 
@@ -179,8 +174,6 @@ After deployment, verify:
 
 ### Within Confluent Console
 
-* Environment
-
 * Kafka Clusters
    ![](./images/kafka_cluster.png)
 
@@ -193,29 +186,6 @@ After deployment, verify:
 * Created Schemas
    ![](./images/schemas.png)
 
-
-
-
-### Test the CDC pipeline
-
-1. **Insert test data** into PostgreSQL:
-   ```bash
-   psql -h $(terraform output -raw rds_address) \
-        -U $(terraform output -raw rds_database_name) \
-        -d postgresdb
-   ```
-
-   ```sql
-   INSERT INTO customers (account_number, customer_name, email, city)
-   VALUES ('ACC001', 'John Doe', 'john@example.com', 'New York');
-
-   INSERT INTO transactions (txn_id, account_number, amount, merchant, status)
-   VALUES ('TXN001', 'ACC001', 100.50, 'Amazon', 'COMPLETED');
-   ```
-
-2. **Verify messages in Kafka**:
-   - Use Confluent Cloud UI → Topics → `{prefix}.public.customers`
-   - Or use `kafka-console-consumer` with Confluent Cloud credentials
 
 ### Destroy resources
 
@@ -253,14 +223,9 @@ The Terraform creates two tables:
 
 This Terraform configuration supports reusing existing Confluent Cloud service accounts:
 
-- **App Manager Service Account**: Set `app_manager_sa_id` to reuse an existing service account with EnvironmentAdmin role
 - **Connectors Service Account**: Set `connectors_sa_id` to reuse an existing service account for CDC connectors
 
 If these variables are not set, new service accounts will be created automatically with the appropriate roles and permissions.
-
-**Note**: When reusing existing service accounts, ensure they have the required permissions:
-- App Manager SA: `EnvironmentAdmin` role on the environment
-- Connectors SA: Kafka ACLs for CREATE, WRITE, READ on topics, DESCRIBE on cluster, and READ on consumer groups
 
 ## IAM Role and Policy Reuse
 
@@ -325,9 +290,6 @@ If schema cleanup fails during destroy:
    ```
 
 2. **Manually delete schemas** using the Schema Registry API or Confluent Cloud UI
-
-
-
 
 
 ## References

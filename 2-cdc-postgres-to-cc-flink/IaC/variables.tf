@@ -110,26 +110,22 @@ variable "allow_all_cidr_blocks" {
 
 # -----------------------------------------------------------------------------
 # Confluent Cloud Configuration
+# Note: Confluent Cloud resources are managed by base infrastructure
+# This module only needs API credentials for managing connectors and ACLs
 # -----------------------------------------------------------------------------
 variable "confluent_cloud_api_key" {
-  description = "Confluent Cloud API Key (can be set via CONFLUENT_CLOUD_API_KEY env var)"
+  description = "Confluent Cloud API Key (can be set via CONFLUENT_CLOUD_API_KEY env var). Required for connector and ACL management."
   type        = string
   default     = ""
   # Will use environment variable if not provided
 }
 
 variable "confluent_cloud_api_secret" {
-  description = "Confluent Cloud API Secret (can be set via CONFLUENT_CLOUD_API_SECRET env var)"
+  description = "Confluent Cloud API Secret (can be set via CONFLUENT_CLOUD_API_SECRET env var). Required for connector and ACL management."
   type        = string
   sensitive   = true
   default     = ""
   # Will use environment variable if not provided
-}
-
-variable "cc_availability" {
-  description = "Kafka cluster availability (SINGLE_ZONE or MULTI_ZONE)"
-  type        = string
-  default     = "SINGLE_ZONE"
 }
 
 # -----------------------------------------------------------------------------

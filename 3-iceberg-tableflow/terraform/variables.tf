@@ -17,22 +17,40 @@ variable "confluent_cloud_api_secret" {
   default     = ""
 }
 
+variable "owner_email" {
+  description = "Email of the resource owner for tagging"
+  type        = string
+  default     = "jboyer@confluent.io"
+}
+
 variable "iac_state_path" {
   description = "Path to the IaC terraform state file (relative to this terraform directory). Set to empty string if not using remote state."
   type        = string
-  default     = ""
+  default = "../../2-cdc-postgres-to-cc-flink/IaC/terraform.tfstate"
+}
+
+variable "cflt_state_path" {
+  description = "Path to the IaC terraform state file (relative to this terraform directory). Set to empty string if not using remote state."
+  type        = string
+  default = "../../1-confluent-cloud-infrastructure/terraform.tfstate"
 }
 
 variable "topic_name" {
   description = "Name of the Kafka topic to enable Tableflow on (transaction enriched topic)"
   type        = string
-  default     = "transaction_enriched"
+  default     = "tx_enriched"
 }
 
 variable "enable_tableflow" {
   description = "Enable Tableflow on the topic"
   type        = bool
   default     = true
+}
+
+variable "prefix" {
+    description = "Name of the Kafka topic to enable Tableflow on (transaction enriched topic)"
+  type        = string
+  default     = "txp"
 }
 
 # -----------------------------------------------------------------------------
@@ -85,22 +103,29 @@ variable "flink_compute_pool_id" {
   default     = ""
 }
 
+variable "flink_service_account_id" {
+  description = "Flink service account ID - reused for app management, deployment, and compute pool operations (required if not using remote state). This service account serves as the principal for Flink statements."
+  type        = string
+  default     = ""
+}
+
 variable "flink_api_key" {
-  description = "Flink API Key ID (required if not using remote state)"
+  description = "Flink API Key ID from the flink_service_account_id (required if not using remote state). Should be an API key associated with flink_service_account_id."
   type        = string
   default     = ""
   sensitive   = true
 }
 
 variable "flink_api_secret" {
-  description = "Flink API Secret (required if not using remote state)"
+  description = "Flink API Secret from the flink_service_account_id (required if not using remote state)"
   type        = string
   default     = ""
   sensitive   = true
 }
 
+# Legacy variable name for backward compatibility
 variable "app_manager_service_account_id" {
-  description = "App Manager service account ID for Flink statements (required if not using remote state)"
+  description = "[DEPRECATED] Use flink_service_account_id instead. App Manager service account ID for Flink statements (required if not using remote state)"
   type        = string
   default     = ""
 }
@@ -141,14 +166,27 @@ variable "flink_max_cfu" {
   default     = 20
 }
 
-variable "prefix" {
-  description = "Prefix for resource names"
-  type        = string
-  default     = "tx-enriched"
-}
 
 variable "create_compute_pool" {
   description = "Whether to create a new Flink compute pool. If false, use existing flink_compute_pool_id"
   type        = bool
-  default     = true
+  default     = false
 }
+
+# -----------------------------------------------------------------------------
+# AWS IAM Configuration (Optional - for reusing existing resources)
+# -----------------------------------------------------------------------------
+variable "iam_role_arn" {
+  description = "Existing IAM role ARN to reuse for both Glue and Athena (optional - will create new if not provided). The role must have trust policies for both glue.amazonaws.com and athena.amazonaws.com services."
+  type        = string
+  default     = ""
+}
+
+variable "iam_policy_name" {
+  description = "Existing Glue S3 access policy ARN to reuse (optional - will create new if not provided)"
+  type        = string
+  default     = ""
+}
+
+
+

@@ -113,11 +113,11 @@ resource "null_resource" "pre_cleanup_cdc_schemas" {
 # -----------------------------------------------------------------------------
 resource "confluent_connector" "postgres_cdc_source" {
   environment {
-    id = confluent_environment.cdc_env.id
+    id = local.environment_id
   }
 
   kafka_cluster {
-    id = confluent_kafka_cluster.cdc_cluster.id
+    id = local.kafka_cluster_id
   }
 
   config_sensitive = {

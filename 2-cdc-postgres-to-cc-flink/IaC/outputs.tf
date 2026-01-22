@@ -42,31 +42,41 @@ output "rds_allowed_cidr_blocks" {
 }
 
 # -----------------------------------------------------------------------------
-# Confluent Cloud Outputs
+# Confluent Cloud Outputs (from base infrastructure)
 # -----------------------------------------------------------------------------
 output "confluent_environment_id" {
   description = "Confluent Cloud environment ID"
-  value       = confluent_environment.cdc_env.id
+  value       = local.environment_id
+}
+
+output "confluent_environment_name" {
+  description = "Confluent Cloud environment name"
+  value       = local.environment_name
 }
 
 output "confluent_kafka_cluster_id" {
   description = "Confluent Cloud Kafka cluster ID"
-  value       = confluent_kafka_cluster.cdc_cluster.id
+  value       = local.kafka_cluster_id
+}
+
+output "confluent_kafka_cluster_name" {
+  description = "Confluent Cloud Kafka cluster name"
+  value       = local.kafka_cluster_name
 }
 
 output "confluent_kafka_cluster_bootstrap_endpoint" {
   description = "Confluent Cloud Kafka cluster bootstrap endpoint"
-  value       = confluent_kafka_cluster.cdc_cluster.bootstrap_endpoint
+  value       = data.confluent_kafka_cluster.cdc_cluster.bootstrap_endpoint
 }
 
 output "confluent_schema_registry_id" {
   description = "Confluent Cloud Schema Registry cluster ID"
-  value       = data.confluent_schema_registry_cluster.cdc_sr.id
+  value       = local.schema_registry_id
 }
 
 output "confluent_schema_registry_endpoint" {
   description = "Confluent Cloud Schema Registry REST endpoint"
-  value       = data.confluent_schema_registry_cluster.cdc_sr.rest_endpoint
+  value       = local.schema_registry_endpoint
 }
 
 output "schema_registry_api_key" {

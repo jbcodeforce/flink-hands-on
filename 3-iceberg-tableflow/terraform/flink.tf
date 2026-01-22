@@ -26,13 +26,25 @@ resource "confluent_flink_compute_pool" "flink_pool" {
 }
 
 # -----------------------------------------------------------------------------
+# Data Source: Verify compute pool exists in correct environment (if not creating)
+# -----------------------------------------------------------------------------
+# Only verify if we're using an existing compute pool (not creating a new one)
+data "confluent_flink_compute_pool" "existing_pool" {
+  count = var.create_compute_pool ? 0 : (local.flink_compute_pool_id != "" ? 1 : 0)
+  id    = local.flink_compute_pool_id
+
+  environment {
+    id = local.confluent_environment_id
+  }
+}
+
+# -----------------------------------------------------------------------------
 # Local: Compute pool ID (created or provided)
 # -----------------------------------------------------------------------------
+# Priority: created pool > cflt_state_path  > variable
 locals {
-  flink_compute_pool_id_final = var.create_compute_pool ? confluent_flink_compute_pool.flink_pool[0].id : (var.iac_state_path != "" ? try(data.terraform_remote_state.iac[0].outputs.flink_compute_pool_id, "") : var.flink_compute_pool_id)
-  app_manager_service_account_id = coalesce(
-    var.app_manager_service_account_id != "" ? var.app_manager_service_account_id : null,
-    try(data.terraform_remote_state.iac.outputs.app_manager_service_account_id, null)
+  flink_compute_pool_id_final = var.create_compute_pool ? confluent_flink_compute_pool.flink_pool[0].id : (
+    local.flink_compute_pool_id != "" ? local.flink_compute_pool_id  : var.flink_compute_pool_id
   )
 }
 
@@ -58,7 +70,7 @@ resource "confluent_flink_statement" "ddl" {
   }
   
   principal {
-    id = local.app_manager_service_account_id
+    id = local.flink_service_account_id
   }
   
   rest_endpoint = data.confluent_flink_region.flink_region.rest_endpoint
@@ -102,7 +114,7 @@ resource "confluent_flink_statement" "dml" {
   }
   
   principal {
-    id = local.app_manager_service_account_id
+    id = local.flink_service_account_id
   }
   
   rest_endpoint = data.confluent_flink_region.flink_region.rest_endpoint

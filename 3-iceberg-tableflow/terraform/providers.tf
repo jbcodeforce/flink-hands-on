@@ -15,6 +15,10 @@ terraform {
       source  = "hashicorp/random"
       version = "~> 3.1"
     }
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
   }
 }
 
@@ -26,4 +30,11 @@ terraform {
 provider "confluent" {
   cloud_api_key    = var.confluent_cloud_api_key != "" ? var.confluent_cloud_api_key : null
   cloud_api_secret = var.confluent_cloud_api_secret != "" ? var.confluent_cloud_api_secret : null
+}
+
+# -----------------------------------------------------------------------------
+# AWS Provider
+# -----------------------------------------------------------------------------
+provider "aws" {
+  region = var.cloud_region
 }

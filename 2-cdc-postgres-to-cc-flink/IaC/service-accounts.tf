@@ -1,40 +1,25 @@
 # -----------------------------------------------------------------------------
 # Service Accounts, API Keys, and ACLs
 # CDC Postgres to Confluent Cloud Flink
+# Reuses base infrastructure service account and creates connector-specific service account
 # -----------------------------------------------------------------------------
 
 # -----------------------------------------------------------------------------
-# Data Sources for Existing Service Accounts
+# Service Accounts
 # -----------------------------------------------------------------------------
 
-# Fetch existing app manager service account if ID is provided
-data "confluent_service_account" "existing_app_manager" {
-  count = var.app_manager_sa_id != "" ? 1 : 0
-  id    = var.app_manager_sa_id
+# Reuse the base service account from infrastructure for app manager operations
+# This service account already has EnvironmentAdmin role from base infrastructure
+locals {
+  app_manager_sa = data.confluent_service_account.base_sa
 }
 
-# Fetch existing connectors service account if ID is provided
+# Connectors - For CDC connectors (create new if not provided)
 data "confluent_service_account" "existing_connectors" {
   count = var.connectors_sa_id != "" ? 1 : 0
   id    = var.connectors_sa_id
 }
 
-# -----------------------------------------------------------------------------
-# Service Accounts (Create if not provided)
-# -----------------------------------------------------------------------------
-
-# App Manager - Full environment admin for cluster management
-resource "confluent_service_account" "app_manager" {
-  count        = var.app_manager_sa_id == "" ? 1 : 0
-  display_name = "${var.prefix}-app-manager-${random_id.env_display_id.hex}"
-  description  = "Service account for managing CDC resources"
-
-  lifecycle {
-    prevent_destroy = false
-  }
-}
-
-# Connectors - For CDC connectors
 resource "confluent_service_account" "connectors" {
   count        = var.connectors_sa_id == "" ? 1 : 0
   display_name = "${var.prefix}-connectors-${random_id.env_display_id.hex}"
@@ -45,66 +30,29 @@ resource "confluent_service_account" "connectors" {
   }
 }
 
-# -----------------------------------------------------------------------------
-# Locals for Service Account References
-# -----------------------------------------------------------------------------
-
 locals {
-  # Use existing service account if provided, otherwise use created one
-  app_manager_sa = var.app_manager_sa_id != "" ? data.confluent_service_account.existing_app_manager[0] : confluent_service_account.app_manager[0]
-  connectors_sa   = var.connectors_sa_id != "" ? data.confluent_service_account.existing_connectors[0] : confluent_service_account.connectors[0]
+  connectors_sa = var.connectors_sa_id != "" ? data.confluent_service_account.existing_connectors[0] : confluent_service_account.connectors[0]
 }
 
 # -----------------------------------------------------------------------------
 # Role Bindings
 # -----------------------------------------------------------------------------
 
-# App Manager - Environment Admin
-resource "confluent_role_binding" "app_manager_env_admin" {
-  principal   = "User:${local.app_manager_sa.id}"
-  role_name   = "EnvironmentAdmin"
-  crn_pattern = confluent_environment.cdc_env.resource_name
-
-  lifecycle {
-    prevent_destroy = false
-  }
-}
+# Note: App Manager role binding is already created in base infrastructure
+# The base service account already has EnvironmentAdmin role
 
 # -----------------------------------------------------------------------------
 # API Keys
 # -----------------------------------------------------------------------------
 
-# App Manager - Kafka API Key
-resource "confluent_api_key" "app_manager_kafka_key" {
-  display_name = "${var.prefix}-app-manager-kafka-key"
-  description  = "Kafka API Key for app-manager service account"
-
-  owner {
-    id          = local.app_manager_sa.id
-    api_version = local.app_manager_sa.api_version
-    kind        = local.app_manager_sa.kind
-  }
-
-  managed_resource {
-    id          = confluent_kafka_cluster.cdc_cluster.id
-    api_version = confluent_kafka_cluster.cdc_cluster.api_version
-    kind        = confluent_kafka_cluster.cdc_cluster.kind
-
-    environment {
-      id = confluent_environment.cdc_env.id
-    }
-  }
-
-  depends_on = [
-    confluent_role_binding.app_manager_env_admin
-  ]
-
-  lifecycle {
-    prevent_destroy = false
-  }
+# Reuse Kafka API Key from base infrastructure
+locals {
+  app_manager_kafka_key_id     = local.kafka_api_key_id
+  app_manager_kafka_key_secret = local.kafka_api_key_secret
 }
 
 # App Manager - Schema Registry API Key
+# Create a new Schema Registry API key for this module's operations
 resource "confluent_api_key" "app_manager_sr_key" {
   display_name = "${var.prefix}-app-manager-sr-key"
   description  = "Schema Registry API Key for app-manager service account"
@@ -121,13 +69,9 @@ resource "confluent_api_key" "app_manager_sr_key" {
     kind        = data.confluent_schema_registry_cluster.cdc_sr.kind
 
     environment {
-      id = confluent_environment.cdc_env.id
+      id = local.environment_id
     }
   }
-
-  depends_on = [
-    confluent_role_binding.app_manager_env_admin
-  ]
 
   lifecycle {
     prevent_destroy = false
@@ -140,7 +84,7 @@ resource "confluent_api_key" "app_manager_sr_key" {
 
 resource "confluent_kafka_acl" "connectors_create_topic" {
   kafka_cluster {
-    id = confluent_kafka_cluster.cdc_cluster.id
+    id = local.kafka_cluster_id
   }
 
   resource_type = "TOPIC"
@@ -151,11 +95,11 @@ resource "confluent_kafka_acl" "connectors_create_topic" {
   operation     = "CREATE"
   permission    = "ALLOW"
 
-  rest_endpoint = confluent_kafka_cluster.cdc_cluster.rest_endpoint
+  rest_endpoint = data.confluent_kafka_cluster.cdc_cluster.rest_endpoint
 
   credentials {
-    key    = confluent_api_key.app_manager_kafka_key.id
-    secret = confluent_api_key.app_manager_kafka_key.secret
+    key    = local.app_manager_kafka_key_id
+    secret = local.app_manager_kafka_key_secret
   }
 
   lifecycle {
@@ -165,7 +109,7 @@ resource "confluent_kafka_acl" "connectors_create_topic" {
 
 resource "confluent_kafka_acl" "connectors_write_topic" {
   kafka_cluster {
-    id = confluent_kafka_cluster.cdc_cluster.id
+    id = local.kafka_cluster_id
   }
 
   resource_type = "TOPIC"
@@ -176,11 +120,11 @@ resource "confluent_kafka_acl" "connectors_write_topic" {
   operation     = "WRITE"
   permission    = "ALLOW"
 
-  rest_endpoint = confluent_kafka_cluster.cdc_cluster.rest_endpoint
+  rest_endpoint = data.confluent_kafka_cluster.cdc_cluster.rest_endpoint
 
   credentials {
-    key    = confluent_api_key.app_manager_kafka_key.id
-    secret = confluent_api_key.app_manager_kafka_key.secret
+    key    = local.app_manager_kafka_key_id
+    secret = local.app_manager_kafka_key_secret
   }
 
   lifecycle {
@@ -190,7 +134,7 @@ resource "confluent_kafka_acl" "connectors_write_topic" {
 
 resource "confluent_kafka_acl" "connectors_read_topic" {
   kafka_cluster {
-    id = confluent_kafka_cluster.cdc_cluster.id
+    id = local.kafka_cluster_id
   }
 
   resource_type = "TOPIC"
@@ -201,11 +145,11 @@ resource "confluent_kafka_acl" "connectors_read_topic" {
   operation     = "READ"
   permission    = "ALLOW"
 
-  rest_endpoint = confluent_kafka_cluster.cdc_cluster.rest_endpoint
+  rest_endpoint = data.confluent_kafka_cluster.cdc_cluster.rest_endpoint
 
   credentials {
-    key    = confluent_api_key.app_manager_kafka_key.id
-    secret = confluent_api_key.app_manager_kafka_key.secret
+    key    = local.app_manager_kafka_key_id
+    secret = local.app_manager_kafka_key_secret
   }
 
   lifecycle {
@@ -215,7 +159,7 @@ resource "confluent_kafka_acl" "connectors_read_topic" {
 
 resource "confluent_kafka_acl" "connectors_describe_cluster" {
   kafka_cluster {
-    id = confluent_kafka_cluster.cdc_cluster.id
+    id = local.kafka_cluster_id
   }
 
   resource_type = "CLUSTER"
@@ -226,11 +170,11 @@ resource "confluent_kafka_acl" "connectors_describe_cluster" {
   operation     = "DESCRIBE"
   permission    = "ALLOW"
 
-  rest_endpoint = confluent_kafka_cluster.cdc_cluster.rest_endpoint
+  rest_endpoint = data.confluent_kafka_cluster.cdc_cluster.rest_endpoint
 
   credentials {
-    key    = confluent_api_key.app_manager_kafka_key.id
-    secret = confluent_api_key.app_manager_kafka_key.secret
+    key    = local.app_manager_kafka_key_id
+    secret = local.app_manager_kafka_key_secret
   }
 
   lifecycle {
@@ -240,7 +184,7 @@ resource "confluent_kafka_acl" "connectors_describe_cluster" {
 
 resource "confluent_kafka_acl" "connectors_read_group" {
   kafka_cluster {
-    id = confluent_kafka_cluster.cdc_cluster.id
+    id = local.kafka_cluster_id
   }
 
   resource_type = "GROUP"
@@ -251,11 +195,11 @@ resource "confluent_kafka_acl" "connectors_read_group" {
   operation     = "READ"
   permission    = "ALLOW"
 
-  rest_endpoint = confluent_kafka_cluster.cdc_cluster.rest_endpoint
+  rest_endpoint = data.confluent_kafka_cluster.cdc_cluster.rest_endpoint
 
   credentials {
-    key    = confluent_api_key.app_manager_kafka_key.id
-    secret = confluent_api_key.app_manager_kafka_key.secret
+    key    = local.app_manager_kafka_key_id
+    secret = local.app_manager_kafka_key_secret
   }
 
   lifecycle {
